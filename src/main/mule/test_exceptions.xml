@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xml-module="http://www.mulesoft.org/schema/mule/xml-module" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/xml-module http://www.mulesoft.org/schema/mule/xml-module/current/mule-xml-module.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="05ba16f4-ef40-4b80-adc6-c4232bf10e1d" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="test_exceptionsFlow" doc:id="d15ff21b-24b9-46a0-8234-dd0353d25077" >
+		<http:listener doc:name="Listener" doc:id="c7a05601-95fc-4230-b152-020a2987308c" config-ref="HTTP_Listener_config" path="/test">
+			<http:response >
+				<http:headers ><![CDATA[#[vars.headers]]]></http:headers>
+			</http:response>
+		</http:listener>
+		<ee:transform doc:name="Transform Message" doc:id="17d98193-278d-40fc-9696-24481be2633f" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="routeResp" ><![CDATA[%dw 2.0
+output application/xml
+---
+readUrl('classpath://routeResp.xml', 'application/xml')]]></ee:set-variable>
+				<ee:set-variable variableName="stopConfirmReq" ><![CDATA[%dw 2.0
+output text/plain
+---
+readUrl('classpath://stopConfirmReq.xml', 'text/plain')]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<xml-module:xslt-transform doc:id="1bb713d5-f00d-465a-9e1c-09f7643c2304" >
+			<xml-module:content ><![CDATA[#[vars.routeResp]]]></xml-module:content>
+			<xml-module:xslt ><![CDATA[${file::transform.xsl}]]></xml-module:xslt>
+			<xml-module:context-properties ><![CDATA[#[{
+	confirmDocIp: vars.stopConfirmReq
+}]]]></xml-module:context-properties>
+		</xml-module:xslt-transform>
+		<logger level="INFO" doc:name="Logger" doc:id="8410166e-644a-4040-810a-5e1948ac7c1e" message="Completed XSLT........"/>
+		<ee:transform doc:name="Transform Message" doc:id="021b6883-10d6-498b-9824-0b88c1da0cba" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="headers" ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	'content-type': 'application/xml'
+}
+	]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+	</flow>
+</mule>

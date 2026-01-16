@@ -1,0 +1,32 @@
+<stopConfirmRequest>
+    <stops>
+        <stop>
+            <orders>
+                <order>
+                    <orderNumber>1234</orderNumber>
+                    <jobType>Delivery</jobType>
+                    <orderLines>
+                        <orderLine>
+                            <orderLineID>L1</orderLineID>
+                        </orderLine>
+                        <orderLine>
+                            <orderLineID>L2</orderLineID>
+                        </orderLine>
+                    </orderLines>
+                </order>
+                <order>
+                    <orderNumber>5678</orderNumber>
+                    <jobType>Collection</jobType>
+                    <orderLines>
+                        <orderLine>
+                            <orderLineID>L3</orderLineID>
+                        </orderLine>
+                        <orderLine>
+                            <orderLineID>L4</orderLineID>
+                        </orderLine>
+                    </orderLines>
+                </order>
+            </orders>
+        </stop>
+    </stops>
+</stopConfirmRequest>
