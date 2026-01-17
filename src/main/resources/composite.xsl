@@ -8,20 +8,23 @@
     <xsl:variable name="routeResp" select="root/routeResp/*" />
     <xsl:variable name="stopConfirmReq" select="root/stopConfirmReq/*" />
 
-    <!-- Validate and transform -->
-    <xsl:choose>
-      <xsl:when test="not($routeResp) or not($stopConfirmReq)">
-        <error>
-          <message>Missing input: Both routeResp and stopConfirmReq are required</message>
-        </error>
-      </xsl:when>
-      <xsl:otherwise>
-        <!-- Perform validation and transformation -->
-        <xsl:apply-templates select="$stopConfirmReq" mode="validate-and-transform">
-          <xsl:with-param name="routeResp" select="$routeResp" />
-        </xsl:apply-templates>
-      </xsl:otherwise>
-    </xsl:choose>
+    <!-- Wrap all output in a root element for valid XML -->
+    <ValidationResult>
+      <!-- Validate and transform -->
+      <xsl:choose>
+        <xsl:when test="not($routeResp) or not($stopConfirmReq)">
+          <error>
+            <message>Missing input: Both routeResp and stopConfirmReq are required</message>
+          </error>
+        </xsl:when>
+        <xsl:otherwise>
+          <!-- Perform validation and transformation -->
+          <xsl:apply-templates select="$stopConfirmReq" mode="validate-and-transform">
+            <xsl:with-param name="routeResp" select="$routeResp" />
+          </xsl:apply-templates>
+        </xsl:otherwise>
+      </xsl:choose>
+    </ValidationResult>
   </xsl:template>
 
   <!-- Main transformation template -->
