@@ -2,7 +2,7 @@
 <xsl:stylesheet version="2.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
   <xsl:output method="xml" indent="yes" />
 
-  <!-- Main template that accepts the composite payload -->
+  <!-- Main template that accepts the composite payload-->
   <xsl:template match="/">
     <!-- Store the two input documents as variables -->
     <xsl:variable name="routeResp" select="root/routeResp/*" />
