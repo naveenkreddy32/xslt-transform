@@ -8,23 +8,23 @@
     <xsl:variable name="routeResp" select="root/routeResp/*" />
     <xsl:variable name="stopConfirmReq" select="root/stopConfirmReq/*" />
 
-    <!-- Wrap all output in a root element for valid XML -->
-    <ValidationResult>
-      <!-- Validate and transform -->
-      <xsl:choose>
-        <xsl:when test="not($routeResp) or not($stopConfirmReq)">
+    <!-- Validate and transform -->
+    <xsl:choose>
+      <xsl:when test="not($routeResp) or not($stopConfirmReq)">
+        <!-- Only wrap errors in ValidationResult -->
+        <ValidationResult>
           <error>
             <message>Missing input: Both routeResp and stopConfirmReq are required</message>
           </error>
-        </xsl:when>
-        <xsl:otherwise>
-          <!-- Perform validation and transformation -->
-          <xsl:apply-templates select="$stopConfirmReq" mode="validate-and-transform">
-            <xsl:with-param name="routeResp" select="$routeResp" />
-          </xsl:apply-templates>
-        </xsl:otherwise>
-      </xsl:choose>
-    </ValidationResult>
+        </ValidationResult>
+      </xsl:when>
+      <xsl:otherwise>
+        <!-- Perform validation and transformation -->
+        <xsl:apply-templates select="$stopConfirmReq" mode="validate-and-transform">
+          <xsl:with-param name="routeResp" select="$routeResp" />
+        </xsl:apply-templates>
+      </xsl:otherwise>
+    </xsl:choose>
   </xsl:template>
 
   <!-- Main transformation template -->
@@ -33,6 +33,9 @@
 
     <!-- Get the stop number from confirmation -->
     <xsl:variable name="stopNumber" select="stop/stopNumber" />
+    
+    <!-- Store confirmation orders in variable for reference inside loops -->
+    <xsl:variable name="confirmOrders" select="stop/orders/order" />
 
     <!-- Get corresponding stop from route response -->
     <xsl:variable name="routeStop" select="$routeResp/Route/Stops/Stop[StopNumber = $stopNumber]" />
@@ -40,25 +43,29 @@
     <!-- Validate stop exists in route -->
     <xsl:choose>
       <xsl:when test="not($routeStop)">
-        <error>
-          <message>Stop <xsl:value-of select="$stopNumber" /> not found in route response</message>
-        </error>
+        <ValidationResult>
+          <error>
+            <message>Stop <xsl:value-of select="$stopNumber" /> not found in route response</message>
+          </error>
+        </ValidationResult>
       </xsl:when>
       <xsl:otherwise>
         <!-- Validate and build output -->
         <xsl:variable name="validationResult">
           <xsl:call-template name="validate-orders">
-            <xsl:with-param name="confirmOrders" select="stop/orders/order" />
+            <xsl:with-param name="confirmOrders" select="$confirmOrders" />
             <xsl:with-param name="routeOrders" select="$routeStop/Orders/Order" />
           </xsl:call-template>
         </xsl:variable>
 
         <xsl:choose>
           <xsl:when test="$validationResult/error">
-            <xsl:copy-of select="$validationResult" />
+            <ValidationResult>
+              <xsl:copy-of select="$validationResult" />
+            </ValidationResult>
           </xsl:when>
           <xsl:otherwise>
-            <!-- Build validated output maintaining route order -->
+            <!-- Build validated output maintaining route order (no ValidationResult wrapper for success) -->
             <StandardWincantonTMSStopConfirmationRequest>
               <routeNumber>
                 <xsl:value-of select="routeNumber" />
@@ -83,7 +90,7 @@
                   <!-- Iterate orders in route response order -->
                   <xsl:for-each select="$routeStop/Orders/Order">
                     <xsl:variable name="routeOrderNum" select="OrderNumber" />
-                    <xsl:variable name="confirmOrder" select="../../stop/orders/order[orderNumber = $routeOrderNum]" />
+                    <xsl:variable name="confirmOrder" select="$confirmOrders[orderNumber = $routeOrderNum]" />
 
                     <order>
                       <orderNumber>
@@ -154,8 +161,8 @@
       <xsl:variable name="routeJobType" select="JobType" />
       <xsl:variable name="confirmOrder" select="$confirmOrders[orderNumber = $routeOrderNum]" />
 
-      <!-- Check job type matches -->
-      <xsl:if test="$confirmOrder/jobType != $routeJobType">
+      <!-- Check job type matches (missing or mismatched jobType is an error) -->
+      <xsl:if test="$confirmOrder and (not($confirmOrder/jobType) or $confirmOrder/jobType != $routeJobType)">
         <error>
           <message>Order <xsl:value-of select="$routeOrderNum" />: jobType mismatch. Expected '<xsl:value-of select="$routeJobType" />', got '<xsl:value-of select="$confirmOrder/jobType" />'</message>
         </error>
