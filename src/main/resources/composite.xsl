@@ -2,7 +2,7 @@
 <xsl:stylesheet version="2.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
   <xsl:output method="xml" indent="yes" />
 
-  <!-- Main template that accepts the composite payload-->
+  <!-- Main template that accepts the composite payload -->
   <xsl:template match="/">
     <!-- Store the two input documents as variables -->
     <xsl:variable name="routeResp" select="root/routeResp/*" />
@@ -11,12 +11,9 @@
     <!-- Validate and transform -->
     <xsl:choose>
       <xsl:when test="not($routeResp) or not($stopConfirmReq)">
-        <!-- Only wrap errors in ValidationResult -->
-        <ValidationResult>
-          <error>
-            <message>Missing input: Both routeResp and stopConfirmReq are required</message>
-          </error>
-        </ValidationResult>
+        <error>
+          <message>Missing input: Both routeResp and stopConfirmReq are required</message>
+        </error>
       </xsl:when>
       <xsl:otherwise>
         <!-- Perform validation and transformation -->
@@ -43,15 +40,13 @@
     <!-- Validate stop exists in route -->
     <xsl:choose>
       <xsl:when test="not($routeStop)">
-        <ValidationResult>
-          <error>
-            <message>Stop <xsl:value-of select="$stopNumber" /> not found in route response</message>
-          </error>
-        </ValidationResult>
+        <error>
+          <message>Stop <xsl:value-of select="$stopNumber" /> not found in route response</message>
+        </error>
       </xsl:when>
       <xsl:otherwise>
-        <!-- Validate and build output -->
-        <xsl:variable name="validationResult">
+        <!-- Perform validation -->
+        <xsl:variable name="validationErrors">
           <xsl:call-template name="validate-orders">
             <xsl:with-param name="confirmOrders" select="$confirmOrders" />
             <xsl:with-param name="routeOrders" select="$routeStop/Orders/Order" />
@@ -59,59 +54,58 @@
         </xsl:variable>
 
         <xsl:choose>
-          <xsl:when test="$validationResult/error">
-            <ValidationResult>
-              <xsl:copy-of select="$validationResult" />
-            </ValidationResult>
+          <xsl:when test="$validationErrors/error">
+            <!-- Output validation errors -->
+            <xsl:copy-of select="$validationErrors/error" />
           </xsl:when>
           <xsl:otherwise>
-            <!-- Build validated output maintaining route order, but copy all fields from confirmation as-is -->
+            <!-- Build validated output: copy all fields as-is but reorder orders and orderLines -->
             <StandardWincantonTMSStopConfirmationRequest>
-              <routeNumber>
-                <xsl:value-of select="routeNumber" />
-              </routeNumber>
-              <routeDate>
-                <xsl:value-of select="routeDate" />
-              </routeDate>
+              <!-- Copy routeNumber and routeDate as-is -->
+              <xsl:copy-of select="routeNumber" />
+              <xsl:copy-of select="routeDate" />
+              
               <stop>
-                <stopNumber>
-                  <xsl:value-of select="$stopNumber" />
-                </stopNumber>
-                <status>
-                  <xsl:value-of select="stop/status" />
-                </status>
-                <arriveTime>
-                  <xsl:value-of select="stop/arriveTime" />
-                </arriveTime>
-                <completionTime>
-                  <xsl:value-of select="stop/completionTime" />
-                </completionTime>
+                <!-- Copy stop-level fields as-is (stopNumber, status, arriveTime, completionTime) -->
+                <xsl:copy-of select="stop/stopNumber" />
+                <xsl:copy-of select="stop/status" />
+                <xsl:copy-of select="stop/arriveTime" />
+                <xsl:copy-of select="stop/completionTime" />
+                
+                <!-- Reorder orders based on route response -->
                 <orders>
-                  <!-- Iterate orders in route response order, but copy entire confirmation order as-is -->
                   <xsl:for-each select="$routeStop/Orders/Order">
                     <xsl:variable name="routeOrderNum" select="OrderNumber" />
                     <xsl:variable name="confirmOrder" select="$confirmOrders[orderNumber = $routeOrderNum]" />
                     <xsl:variable name="routeOrder" select="." />
 
                     <order>
-                      <!-- Copy all fields from confirmation order EXCEPT orderLines -->
-                      <xsl:copy-of select="$confirmOrder/(* except orderLines)" />
+                      <!-- Copy order-level fields from confirmation as-is, EXCEPT orderLines -->
+                      <xsl:copy-of select="$confirmOrder/orderNumber" />
+                      <xsl:copy-of select="$confirmOrder/jobType" />
+                      <xsl:copy-of select="$confirmOrder/status" />
                       
-                      <!-- Handle orderLines separately to maintain route sequence -->
-                      <xsl:if test="$confirmOrder/orderLines">
-                        <orderLines>
-                          <!-- Iterate order lines in route response order -->
-                          <xsl:for-each select="$routeOrder/OrderLines/OrderLine">
-                            <xsl:variable name="routeLineId" select="OrderLineID" />
-                            <xsl:variable name="confirmLine" select="$confirmOrder/orderLines/orderLine[orderLineID = $routeLineId]" />
-                            <!-- Copy entire confirmation order line as-is -->
-                            <xsl:copy-of select="$confirmLine" />
-                          </xsl:for-each>
-                        </orderLines>
-                      </xsl:if>
+                      <!-- Reorder orderLines based on route response, but keep order line data as-is -->
+                      <orderLines>
+                        <xsl:for-each select="$routeOrder/OrderLines/OrderLine">
+                          <xsl:variable name="routeLineId" select="OrderLineID" />
+                          <xsl:variable name="confirmLine" select="$confirmOrder/orderLines/orderLine[orderLineID = $routeLineId]" />
+                          
+                          <!-- Copy entire orderLine from confirmation as-is -->
+                          <xsl:copy-of select="$confirmLine" />
+                        </xsl:for-each>
+                      </orderLines>
+                      
+                      <!-- Copy optional order-level fields if they exist -->
+                      <xsl:copy-of select="$confirmOrder/photos" />
+                      <xsl:copy-of select="$confirmOrder/signatures" />
                     </order>
                   </xsl:for-each>
                 </orders>
+                
+                <!-- Copy optional stop-level fields if they exist -->
+                <xsl:copy-of select="stop/photos" />
+                <xsl:copy-of select="stop/signatures" />
               </stop>
             </StandardWincantonTMSStopConfirmationRequest>
           </xsl:otherwise>
@@ -151,8 +145,8 @@
       <xsl:variable name="routeJobType" select="JobType" />
       <xsl:variable name="confirmOrder" select="$confirmOrders[orderNumber = $routeOrderNum]" />
 
-      <!-- Check job type matches (missing or mismatched jobType is an error) -->
-      <xsl:if test="$confirmOrder and (not($confirmOrder/jobType) or $confirmOrder/jobType != $routeJobType)">
+      <!-- Check job type matches -->
+      <xsl:if test="$confirmOrder/jobType != $routeJobType">
         <error>
           <message>Order <xsl:value-of select="$routeOrderNum" />: jobType mismatch. Expected '<xsl:value-of select="$routeJobType" />', got '<xsl:value-of select="$confirmOrder/jobType" />'</message>
         </error>
@@ -171,8 +165,7 @@
       <!-- Check for additional order lines in confirmation -->
       <xsl:for-each select="$confirmOrder/orderLines/orderLine">
         <xsl:variable name="confirmLineId" select="orderLineID" />
-        <xsl:variable name="routeOrder" select="$routeOrders[OrderNumber = $confirmOrder/orderNumber]" />
-        <xsl:if test="not($routeOrder/OrderLines/OrderLine[OrderLineID = $confirmLineId])">
+        <xsl:if test="not($routeOrders[OrderNumber = $routeOrderNum]/OrderLines/OrderLine[OrderLineID = $confirmLineId])">
           <error>
             <message>Order <xsl:value-of select="$routeOrderNum" />: OrderLine <xsl:value-of select="$confirmLineId" /> in confirmation but not in route</message>
           </error>
