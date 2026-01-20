@@ -62,15 +62,15 @@
             <!-- Build validated output: copy all fields as-is but reorder orders and orderLines -->
             <StandardWincantonTMSStopConfirmationRequest>
               <!-- Copy routeNumber and routeDate as-is -->
-              <xsl:copy-of select="routeNumber" />
-              <xsl:copy-of select="routeDate" />
+              <xsl:copy-of select="routeNumber" copy-namespaces="no" />
+              <xsl:copy-of select="routeDate" copy-namespaces="no" />
               
               <stop>
                 <!-- Copy stop-level fields as-is (stopNumber, status, arriveTime, completionTime) -->
-                <xsl:copy-of select="stop/stopNumber" />
-                <xsl:copy-of select="stop/status" />
-                <xsl:copy-of select="stop/arriveTime" />
-                <xsl:copy-of select="stop/completionTime" />
+                <xsl:copy-of select="stop/stopNumber" copy-namespaces="no" />
+                <xsl:copy-of select="stop/status" copy-namespaces="no" />
+                <xsl:copy-of select="stop/arriveTime" copy-namespaces="no" />
+                <xsl:copy-of select="stop/completionTime" copy-namespaces="no" />
                 
                 <!-- Reorder orders based on route response -->
                 <orders>
@@ -81,9 +81,9 @@
 
                     <order>
                       <!-- Copy order-level fields from confirmation as-is, EXCEPT orderLines -->
-                      <xsl:copy-of select="$confirmOrder/orderNumber" />
-                      <xsl:copy-of select="$confirmOrder/jobType" />
-                      <xsl:copy-of select="$confirmOrder/status" />
+                      <xsl:copy-of select="$confirmOrder/orderNumber" copy-namespaces="no" />
+                      <xsl:copy-of select="$confirmOrder/jobType" copy-namespaces="no" />
+                      <xsl:copy-of select="$confirmOrder/status" copy-namespaces="no" />
                       
                       <!-- Reorder orderLines based on route response, but keep order line data as-is -->
                       <orderLines>
@@ -92,20 +92,20 @@
                           <xsl:variable name="confirmLine" select="$confirmOrder/orderLines/orderLine[orderLineID = $routeLineId]" />
                           
                           <!-- Copy entire orderLine from confirmation as-is -->
-                          <xsl:copy-of select="$confirmLine" />
+                          <xsl:copy-of select="$confirmLine" copy-namespaces="no" />
                         </xsl:for-each>
                       </orderLines>
                       
                       <!-- Copy optional order-level fields if they exist -->
-                      <xsl:copy-of select="$confirmOrder/photos" />
-                      <xsl:copy-of select="$confirmOrder/signatures" />
+                      <xsl:copy-of select="$confirmOrder/photos" copy-namespaces="no" />
+                      <xsl:copy-of select="$confirmOrder/signatures" copy-namespaces="no" />
                     </order>
                   </xsl:for-each>
                 </orders>
                 
                 <!-- Copy optional stop-level fields if they exist -->
-                <xsl:copy-of select="stop/photos" />
-                <xsl:copy-of select="stop/signatures" />
+                <xsl:copy-of select="stop/photos" copy-namespaces="no" />
+                <xsl:copy-of select="stop/signatures" copy-namespaces="no" />
               </stop>
             </StandardWincantonTMSStopConfirmationRequest>
           </xsl:otherwise>
