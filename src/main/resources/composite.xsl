@@ -55,8 +55,10 @@
 
         <xsl:choose>
           <xsl:when test="$validationErrors/error">
-            <!-- Output validation errors -->
-            <xsl:copy-of select="$validationErrors/error" />
+            <!-- Output validation errors wrapped in root tag -->
+            <ValidationResult>
+              <xsl:copy-of select="$validationErrors/error" />
+            </ValidationResult>
           </xsl:when>
           <xsl:otherwise>
             <!-- Build validated output: copy all fields as-is but reorder orders and orderLines -->
