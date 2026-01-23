@@ -91,7 +91,8 @@
                       <orderLines>
                         <xsl:for-each select="$routeOrder/OrderLines/OrderLine">
                           <xsl:variable name="routeLineId" select="OrderLineID" />
-                          <xsl:variable name="confirmLine" select="$confirmOrder/orderLines/orderLine[orderLineID = $routeLineId]" />
+                          <xsl:variable name="routeLineQuantity" select="Quantity" />
+                          <xsl:variable name="confirmLine" select="$confirmOrder/orderLines/orderLine[orderLineID = $routeLineId and quantity = $routeLineQuantity]" />
                           
                           <!-- Copy entire orderLine from confirmation as-is -->
                           <xsl:copy-of select="$confirmLine" copy-namespaces="no" />
